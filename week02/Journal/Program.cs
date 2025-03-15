@@ -1,68 +1,160 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
-// Entry class represents a single journal entry
-class Entry
+class Program
 {
-    public string Date { get; set; }
-    public string Text { get; set; }
-    
-    public Entry(string text)
+    static Journal journal = new Journal();
+    static void Main()
     {
-        Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        Text = text;
+        while (true)
+        {
+            ClearScreen();
+            Console.WriteLine("✨ Welcome to Your Cute Journal ✨");
+            Console.WriteLine("💖 1. Write a new entry");
+            Console.WriteLine("📖 2. Display journal");
+            Console.WriteLine("💾 3. Save journal to file");
+            Console.WriteLine("📂 4. Load journal from file");
+            Console.WriteLine("🚪 5. Exit");
+            Console.Write("Choose an option: ");
+            string choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    journal.AddEntry();
+                    break;
+                case "2":
+                    journal.DisplayEntries();
+                    break;
+                case "3":
+                    journal.SaveToFile();
+                    break;
+                case "4":
+                    journal.LoadFromFile();
+                    break;
+                case "5":
+                    Console.WriteLine("Goodbye! Have a lovely day! 🌸");
+                    return;
+                default:
+                    Console.WriteLine("Invalid option, try again! ❌");
+                    break;
+            }
+        }
     }
-    
-    public void Display()
+
+    static void ClearScreen()
     {
-        Console.WriteLine($"[{Date}] {Text}");
+        Console.Clear();
+        Console.WriteLine("🌟✨🌸 Welcome to Your Journal 🌸✨🌟\n");
     }
 }
 
-// Journal class manages a collection of entries
 class Journal
 {
     private List<Entry> entries = new List<Entry>();
-
-    public void AddEntry(string text)
+    private List<string> prompts = new List<string>
     {
-        entries.Add(new Entry(text));
+        "Who was the most interesting person I interacted with today?",
+        "What was the best part of my day?",
+        "How did I see kindness in my life today?",
+        "What made me smile today? 😊",
+        "What is one thing I am grateful for today?"
+    };
+
+    public void AddEntry()
+    {
+        ClearScreen();
+        Random rnd = new Random();
+        string prompt = prompts[rnd.Next(prompts.Count)];
+        Console.WriteLine($"📝 {prompt}");
+        Console.Write("Your response: ");
+        string response = Console.ReadLine();
+        string date = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        entries.Add(new Entry(date, prompt, response));
+        Console.WriteLine("✨ Entry saved! Press any key to continue.");
+        Console.ReadKey();
     }
 
     public void DisplayEntries()
     {
-        foreach (var entry in entries)
+        ClearScreen();
+        if (entries.Count == 0)
         {
-            entry.Display();
+            Console.WriteLine("📭 No journal entries yet!");
         }
+        else
+        {
+            Console.WriteLine("📜 Your Journal Entries:");
+            foreach (var entry in entries)
+            {
+                Console.WriteLine($"\n📅 {entry.Date}\n💬 {entry.Prompt}\n✍ {entry.Response}\n-----------------------------");
+            }
+        }
+        Console.WriteLine("Press any key to return to the menu.");
+        Console.ReadKey();
+    }
+
+    public void SaveToFile()
+    {
+        ClearScreen();
+        Console.Write("Enter filename to save (e.g., journal.txt): ");
+        string filename = Console.ReadLine();
+        using (StreamWriter writer = new StreamWriter(filename))
+        {
+            foreach (var entry in entries)
+            {
+                writer.WriteLine($"{entry.Date}|{entry.Prompt}|{entry.Response}");
+            }
+        }
+        Console.WriteLine("💾 Journal saved successfully!");
+        Console.ReadKey();
+    }
+
+    public void LoadFromFile()
+    {
+        ClearScreen();
+        Console.Write("Enter filename to load: ");
+        string filename = Console.ReadLine();
+        if (File.Exists(filename))
+        {
+            entries.Clear();
+            string[] lines = File.ReadAllLines(filename);
+            foreach (string line in lines)
+            {
+                string[] parts = line.Split('|');
+                if (parts.Length == 3)
+                {
+                    entries.Add(new Entry(parts[0], parts[1], parts[2]));
+                }
+            }
+            Console.WriteLine("📂 Journal loaded successfully!");
+        }
+        else
+        {
+            Console.WriteLine("❌ File not found!");
+        }
+        Console.ReadKey();
+    }
+
+    private void ClearScreen()
+    {
+        Console.Clear();
+        Console.WriteLine("🌸 Your Cute Journal 🌸\n");
     }
 }
 
-// Main Program
-class Program
+class Entry
 {
-    static void Main()
+    public string Date { get; }
+    public string Prompt { get; }
+    public string Response { get; }
+
+    public Entry(string date, string prompt, string response)
     {
-        Journal myJournal = new Journal();
-        while (true)
-        {
-            Console.WriteLine("Choose an option: (1) Add Entry (2) View Entries (3) Exit");
-            string choice = Console.ReadLine();
-            
-            if (choice == "1")
-            {
-                Console.Write("Enter your journal entry: ");
-                string entryText = Console.ReadLine();
-                myJournal.AddEntry(entryText);
-            }
-            else if (choice == "2")
-            {
-                myJournal.DisplayEntries();
-            }
-            else if (choice == "3")
-            {
-                break;
-            }
-        }
+        Date = date;
+        Prompt = prompt;
+        Response = response;
     }
 }
+
