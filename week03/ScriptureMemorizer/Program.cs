@@ -1,101 +1,132 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 
-// Reference class to store book, chapter, and verse
-class Reference
-{
-    private string book;
-    private int chapter;
-    private int verse;
-
-    public Reference(string book, int chapter, int verse)
-    {
-        this.book = book;
-        this.chapter = chapter;
-        this.verse = verse;
-    }
-
-    public string GetDisplayText()
-    {
-        return $"{book} {chapter}:{verse}";
-    }
-}
-
-// Word class to manage individual words and their visibility
-class Word
-{
-    private string text;
-    private bool isHidden;
-
-    public Word(string text)
-    {
-        this.text = text;
-        this.isHidden = false;
-    }
-
-    public void Hide()
-    {
-        isHidden = true;
-    }
-
-    public string GetDisplayText()
-    {
-        return isHidden ? "_____" : text;
-    }
-}
-
-// Scripture class to store and manipulate scripture text
-class Scripture
-{
-    private Reference reference;
-    private List<Word> words;
-
-    public Scripture(string book, int chapter, int verse, string text)
-    {
-        reference = new Reference(book, chapter, verse);
-        words = new List<Word>();
-        foreach (var word in text.Split(' '))
-        {
-            words.Add(new Word(word));
-        }
-    }
-
-    public void HideRandomWords(int count)
-    {
-        Random random = new Random();
-        for (int i = 0; i < count; i++)
-        {
-            int index = random.Next(words.Count);
-            words[index].Hide();
-        }
-    }
-
-    public string GetDisplayText()
-    {
-        string scriptureText = string.Join(" ", words.ConvertAll(w => w.GetDisplayText()));
-        return $"{reference.GetDisplayText()} - {scriptureText}";
-    }
-}
-
-// Program class for user interaction
 class Program
 {
     static void Main()
     {
-        Scripture scripture = new Scripture("John", 3, 16, "For God so loved the world that he gave his only begotten Son");
+        Scripture scripture = new Scripture("Proverbs 3:5-6", "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.");
         
-        Console.WriteLine(scripture.GetDisplayText());
+        Console.WriteLine("Welcome to the Scripture Memorizer!");
+        Console.Write("Enter countdown time per round (seconds): ");
+        int countdownTime = int.Parse(Console.ReadLine());
         
-        while (true)
+        while (!scripture.AllWordsHidden())
         {
-            Console.WriteLine("Press Enter to hide words or type 'quit' to exit.");
+            ClearScreen();
+            scripture.Display();
+            Console.WriteLine("\nPress Enter to hide words, type 'quit' to exit.");
+            
+            bool timedOut = false;
+            Thread timerThread = new Thread(() =>
+            {
+                for (int i = countdownTime; i > 0; i--)
+                {
+                    Console.SetCursorPosition(0, Console.CursorTop);
+                    Console.Write($"Time left: {i} seconds ");
+                    Thread.Sleep(1000);
+                }
+                timedOut = true;
+            });
+            
+            timerThread.Start();
             string input = Console.ReadLine();
+            timerThread.Interrupt();
+            
             if (input.ToLower() == "quit")
                 break;
             
-            scripture.HideRandomWords(2);
-            Console.Clear();
-            Console.WriteLine(scripture.GetDisplayText());
+            if (timedOut || string.IsNullOrEmpty(input))
+                scripture.HideRandomWords();
         }
+        
+        ClearScreen();
+        scripture.Display();
+        Console.WriteLine("\nGreat job! You've completed the scripture memorization.");
+    }
+    
+    static void ClearScreen()
+    {
+        Console.Clear();
+    }
+}
+
+class Scripture
+{
+    private Reference reference;
+    private List<Word> words;
+    
+    public Scripture(string refText, string text)
+    {
+        reference = new Reference(refText);
+        words = text.Split(' ').Select(w => new Word(w)).ToList();
+    }
+    
+    public void Display()
+    {
+        Console.WriteLine($"{reference.GetText()}\n");
+        Console.WriteLine(string.Join(" ", words.Select(w => w.GetDisplayText())));
+    }
+    
+    public void HideRandomWords()
+    {
+        Random rand = new Random();
+        int wordsToHide = 3;
+        
+        for (int i = 0; i < wordsToHide; i++)
+        {
+            var visibleWords = words.Where(w => !w.IsHidden()).ToList();
+            if (visibleWords.Count == 0) break;
+            visibleWords[rand.Next(visibleWords.Count)].Hide();
+        }
+    }
+    
+    public bool AllWordsHidden()
+    {
+        return words.All(w => w.IsHidden());
+    }
+}
+
+class Reference
+{
+    private string text;
+    
+    public Reference(string refText)
+    {
+        text = refText;
+    }
+    
+    public string GetText()
+    {
+        return text;
+    }
+}
+
+class Word
+{
+    private string text;
+    private bool hidden;
+    
+    public Word(string text)
+    {
+        this.text = text;
+        hidden = false;
+    }
+    
+    public void Hide()
+    {
+        hidden = true;
+    }
+    
+    public bool IsHidden()
+    {
+        return hidden;
+    }
+    
+    public string GetDisplayText()
+    {
+        return hidden ? new string('_', text.Length) : text;
     }
 }
